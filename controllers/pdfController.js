@@ -4,9 +4,7 @@ const Student = require('../models/Student');
 const Session = require('../models/Session');
 const Response = require('../models/Response');
 
-// @desc    Generate and download PDF result
-// @route   GET /api/pdf/student/:studentId
-// @access  Public
+
 const generateStudentPDF = asyncHandler(async (req, res) => {
     const studentId = req.params.studentId;
 
@@ -24,23 +22,19 @@ const generateStudentPDF = asyncHandler(async (req, res) => {
 
     const responses = await Response.find({ studentId: student._id });
 
-    // Create PDF document
     const doc = new PDFDocument({
         margin: 50,
         size: 'A4'
     });
 
-    // Set response headers
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
         'Content-Disposition',
         `attachment; filename="quiz_result_${student.rollNumber}.pdf"`
     );
 
-    // Pipe PDF to response
     doc.pipe(res);
 
-    // Add content to PDF
     doc.fontSize(24).text('Quiz Results', { align: 'center' });
     doc.moveDown();
 
@@ -51,7 +45,6 @@ const generateStudentPDF = asyncHandler(async (req, res) => {
     doc.text(`Score: ${student.score}/${student.totalQuestions}`);
     doc.moveDown(2);
 
-    // Add questions and answers
     doc.fontSize(16).text('Questions & Answers:', { underline: true });
     doc.moveDown();
 
@@ -86,7 +79,6 @@ const generateStudentPDF = asyncHandler(async (req, res) => {
         doc.moveDown();
     });
 
-    // Add summary
     doc.addPage();
     doc.fontSize(18).text('Summary', { align: 'center' });
     doc.moveDown();
@@ -99,7 +91,6 @@ const generateStudentPDF = asyncHandler(async (req, res) => {
     const date = new Date().toLocaleDateString();
     doc.fontSize(10).text(`Generated on: ${date}`, { align: 'right' });
 
-    // Finalize PDF
     doc.end();
 });
 
