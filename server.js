@@ -2,14 +2,14 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const http = require('http');
-const connectDB = require('./src/config/database');
-const errorHandler = require('./src/middleware/errorHandler');
-const { initSocket } = require('./src/socket/index');
+const connectDB = require('./config/database');
+const errorHandler = require('./middleware/errorHandler');
+const { initSocket } = require('./socket/index');
 
-const quizRoutes = require('./src/routes/quizRoutes');
-const sessionRoutes = require('./src/routes/sessionRoutes');
-const studentRoutes = require('./src/routes/studentRoutes');
-const pdfRoutes = require('./src/routes/pdfRoutes');
+const quizRoutes = require('./routes/quizRoutes');
+const sessionRoutes = require('./routes/sessionRoutes');
+const studentRoutes = require('./routes/studentRoutes');
+const pdfRoutes = require('./routes/pdfRoutes');
 
 dotenv.config();
 
