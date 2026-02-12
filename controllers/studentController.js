@@ -28,8 +28,9 @@ const registerStudent = asyncHandler(async (req, res) => {
     });
 
     if (existingStudent) {
-        res.status(400);
-        throw new Error('Student with this roll number already exists in this session');
+        // If student exists in this active session, return the existing student
+        // This allows re-joining (e.g. after refresh or disconnect)
+        return res.status(200).json(existingStudent);
     }
 
     const student = await Student.create({

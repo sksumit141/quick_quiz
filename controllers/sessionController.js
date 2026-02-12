@@ -4,6 +4,14 @@ const Quiz = require('../models/Quiz');
 const generateRoomCode = require('../utils/roomCodeGenerator');
 
 
+const getActiveSessions = asyncHandler(async (req, res) => {
+    const sessions = await Session.find({ isActive: true })
+        .populate('quizId', 'title')
+        .sort({ createdAt: -1 });
+    res.json(sessions);
+});
+
+
 const createSession = asyncHandler(async (req, res) => {
     const { quizId } = req.body;
 
@@ -96,6 +104,7 @@ const updateCurrentQuestion = asyncHandler(async (req, res) => {
 module.exports = {
     createSession,
     getSessionByRoomCode,
+    getActiveSessions,
     endSession,
     updateCurrentQuestion
 };

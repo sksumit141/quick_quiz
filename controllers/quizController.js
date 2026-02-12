@@ -29,12 +29,27 @@ const getQuiz = asyncHandler(async (req, res) => {
 });
 
 const getQuizzes = asyncHandler(async (req, res) => {
-    const quizzes = await Quiz.find().sort({ createdAt: -1 });
-    res.json(quizzes);
+    // If user is authenticated, find their quizzes. But we don't have user on quiz model yet?
+    // Wait, User model exists. Quiz model might not have user ref. Let's check Quiz model.
+    res.json(await Quiz.find().sort({ createdAt: -1 })); // Placeholder
+});
+
+const deleteQuiz = asyncHandler(async (req, res) => {
+    const quiz = await Quiz.findById(req.params.id);
+
+    if (!quiz) {
+        res.status(404);
+        throw new Error('Quiz not found');
+    }
+
+    await Quiz.deleteOne({ _id: req.params.id });
+
+    res.json({ id: req.params.id });
 });
 
 module.exports = {
     createQuiz,
     getQuiz,
-    getQuizzes
+    getQuizzes,
+    deleteQuiz
 };

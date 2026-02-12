@@ -4,12 +4,14 @@ const router = express.Router();
 const {
     createSession,
     getSessionByRoomCode,
+    getActiveSessions,
     endSession,
     updateCurrentQuestion
 } = require('../controllers/sessionController');
 
 router.route('/')
-    .post(createSession);
+    .post(createSession)
+    .get(getActiveSessions);
 
 router.route('/room/:roomCode')
     .get(getSessionByRoomCode);

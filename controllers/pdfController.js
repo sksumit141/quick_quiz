@@ -4,96 +4,56 @@ const Student = require('../models/Student');
 const Session = require('../models/Session');
 const Response = require('../models/Response');
 
-
 const generateStudentPDF = asyncHandler(async (req, res) => {
-    const studentId = req.params.studentId;
-
-    const student = await Student.findById(studentId);
+    const student = await Student.findById(req.params.studentId);
     if (!student) {
         res.status(404);
         throw new Error('Student not found');
     }
 
     const session = await Session.findById(student.sessionId).populate('quizId');
-    if (!session) {
-        res.status(404);
-        throw new Error('Session not found');
-    }
-
     const responses = await Response.find({ studentId: student._id });
 
-    const doc = new PDFDocument({
-        margin: 50,
-        size: 'A4'
-    });
+    // Create PDF
+    const doc = new PDFDocument();
 
+    // Set headers
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-        'Content-Disposition',
-        `attachment; filename="quiz_result_${student.rollNumber}.pdf"`
-    );
+    res.setHeader('Content-Disposition', `attachment; filename=result-${student.rollNumber}.pdf`);
 
     doc.pipe(res);
 
-    doc.fontSize(24).text('Quiz Results', { align: 'center' });
+    // Title
+    doc.fontSize(20).text(`${session.quizId.title} - Results`, { align: 'center' });
     doc.moveDown();
 
-    doc.fontSize(14).text(`Student Name: ${student.name}`);
+    // Student Info
+    doc.fontSize(12).text(`Name: ${student.name}`);
     doc.text(`Roll Number: ${student.rollNumber}`);
-    doc.text(`Quiz Title: ${session.quizId.title}`);
-    doc.text(`Room Code: ${session.roomCode}`);
-    doc.text(`Score: ${student.score}/${student.totalQuestions}`);
-    doc.moveDown(2);
-
-    doc.fontSize(16).text('Questions & Answers:', { underline: true });
+    doc.text(`Score: ${student.score} / ${session.quizId.questions.length}`);
+    doc.moveDown();
+    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
     doc.moveDown();
 
-    session.quizId.questions.forEach((question, index) => {
-        const response = responses.find(r =>
-            r.questionId.toString() === question._id.toString()
-        );
+    // Questions Breakdown
+    session.quizId.questions.forEach((q, index) => {
+        const response = responses.find(r => r.questionId.toString() === q._id.toString());
+        const isCorrect = response ? response.isCorrect : false;
+        const selectedOption = response ? q.options[response.selectedOption] : 'Not Answered';
+        const correctOption = q.options[q.correctOption];
 
-        doc.fontSize(12).text(`Q${index + 1}: ${question.text}`);
-        doc.moveDown(0.5);
-
-        question.options.forEach((option, optIndex) => {
-            let prefix = '○ ';
-            if (optIndex === question.correctOption) {
-                prefix = '✓ ';
-            }
-            if (response && optIndex === response.selectedOption) {
-                prefix = optIndex === question.correctOption ? '✓ ' : '✗ ';
-            }
-            doc.text(`  ${prefix}${option}`);
+        doc.fontSize(12).font('Helvetica-Bold').text(`Q${index + 1}: ${q.text}`);
+        doc.fontSize(10).font('Helvetica').text(`Your Answer: ${selectedOption}`, {
+            color: isCorrect ? 'green' : 'red'
         });
-
-        doc.moveDown();
-
-        if (response) {
-            doc.fontSize(10).text(`Your answer: ${question.options[response.selectedOption]}`, {
-                color: response.isCorrect ? 'green' : 'red'
-            });
-        } else {
-            doc.fontSize(10).text('Not answered', { color: 'gray' });
+        if (!isCorrect) {
+            doc.text(`Correct Answer: ${correctOption}`, { color: 'green' });
         }
+        doc.fillColor('black'); // Reset color
         doc.moveDown();
     });
-
-    doc.addPage();
-    doc.fontSize(18).text('Summary', { align: 'center' });
-    doc.moveDown();
-
-    doc.fontSize(12).text(`Total Questions: ${student.totalQuestions}`);
-    doc.text(`Correct Answers: ${student.score}`);
-    doc.text(`Score Percentage: ${((student.score / student.totalQuestions) * 100).toFixed(2)}%`);
-    doc.moveDown();
-
-    const date = new Date().toLocaleDateString();
-    doc.fontSize(10).text(`Generated on: ${date}`, { align: 'right' });
 
     doc.end();
 });
 
-module.exports = {
-    generateStudentPDF
-};
+module.exports = { generateStudentPDF };

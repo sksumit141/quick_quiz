@@ -3,13 +3,15 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const http = require('http');
 const connectDB = require('./config/database');
-const errorHandler = require('./middleware/errorHandler');
+const { errorHandler } = require('./middleware/errorMiddleware'); // Added Error Middleware
 const { initSocket } = require('./socket/index');
+const path = require('path'); // Added path module
 
 const quizRoutes = require('./routes/quizRoutes');
+const userRoutes = require('./routes/userRoutes'); // Added userRoutes import
 const sessionRoutes = require('./routes/sessionRoutes');
 const studentRoutes = require('./routes/studentRoutes');
-const pdfRoutes = require('./routes/pdfRoutes');
+const pdfRoutes = require('./routes/pdfRoutes'); // Added PDF Route
 
 dotenv.config();
 
@@ -28,13 +30,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/quizzes', quizRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/students', studentRoutes);
-app.use('/api/pdf', pdfRoutes);
+app.use('/api/pdf', pdfRoutes); // Register PDF Routes
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
+
+// Serve frontend
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.get(/(.*)/, (req, res) => res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html')));
 
 app.use(errorHandler);
 
