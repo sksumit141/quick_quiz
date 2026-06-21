@@ -20,7 +20,7 @@ const initSocket = (server) => {
             socket.to(roomCode).emit('user-joined', { socketId: socket.id });
         });
 
-        socket.on('start-quiz', (roomCode) => {
+        socket.on('start-quiz', (roomCode) => { console.log('start-quiz received for room:', roomCode);
             io.to(roomCode).emit('quiz-started');
         });
 

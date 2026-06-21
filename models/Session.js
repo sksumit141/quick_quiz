@@ -30,6 +30,10 @@ const sessionSchema = new mongoose.Schema({
     },
     endedAt: {
         type: Date
+    },
+    finalLeaderboard: {
+        type: Array,
+        default: []
     }
 });
 

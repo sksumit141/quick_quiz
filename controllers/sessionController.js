@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const Session = require('../models/Session');
 const Quiz = require('../models/Quiz');
+const Student = require('../models/Student');
 const generateRoomCode = require('../utils/roomCodeGenerator');
 
 
@@ -72,11 +73,17 @@ const endSession = asyncHandler(async (req, res) => {
         throw new Error('Session not found');
     }
 
+    // Fetch leaderboard
+    const finalLeaderboard = await Student.find({ sessionId: session._id })
+        .sort({ score: -1 })
+        .select('name rollNumber score totalQuestions');
+
     session.isActive = false;
     session.endedAt = new Date();
+    session.finalLeaderboard = finalLeaderboard;
     await session.save();
 
-    res.json({ message: 'Session ended successfully' });
+    res.json({ message: 'Session ended successfully', session });
 });
 
 
