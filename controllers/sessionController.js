@@ -1,117 +1,123 @@
-const asyncHandler = require('express-async-handler');
-const Session = require('../models/Session');
-const Quiz = require('../models/Quiz');
-const Student = require('../models/Student');
-const generateRoomCode = require('../utils/roomCodeGenerator');
+const asyncHandler = require("express-async-handler");
+const Session = require("../models/Session");
+const Quiz = require("../models/Quiz");
+const Student = require("../models/Student");
+const generateRoomCode = require("../utils/roomCodeGenerator");
 
-
+// const getActiveSessions = asyncHandler(async (req, res) => {
+//   const sessions = await Session.find({ isActive: true })
+//     .populate("quizId", "title")
+//     .sort({ createdAt: -1 });
+//   res.json(sessions);
+// });
 const getActiveSessions = asyncHandler(async (req, res) => {
-    const sessions = await Session.find({ isActive: true })
-        .populate('quizId', 'title')
-        .sort({ createdAt: -1 });
-    res.json(sessions);
-});
+  const sessions = await Session.find({
+    hostId: req.user._id,
+    isActive: true,
+  })
+    .populate("quizId", "title")
+    .sort({ createdAt: -1 });
 
+  res.json(sessions);
+});
 
 const createSession = asyncHandler(async (req, res) => {
-    const { quizId } = req.body;
+  const { quizId } = req.body;
 
-    if (!quizId) {
-        res.status(400);
-        throw new Error('Please provide quiz ID');
+  if (!quizId) {
+    res.status(400);
+    throw new Error("Please provide quiz ID");
+  }
+
+  const quiz = await Quiz.findById(quizId);
+  if (!quiz) {
+    res.status(404);
+    throw new Error("Quiz not found");
+  }
+
+  let roomCode;
+  let isUnique = false;
+
+  while (!isUnique) {
+    roomCode = generateRoomCode();
+    const existingSession = await Session.findOne({ roomCode, isActive: true });
+    if (!existingSession) {
+      isUnique = true;
     }
+  }
 
-    const quiz = await Quiz.findById(quizId);
-    if (!quiz) {
-        res.status(404);
-        throw new Error('Quiz not found');
-    }
+  const session = await Session.create({
+    quizId,
+    roomCode,
+    hostId: req.user._id,
+    isActive: true,
+    currentQuestionIndex: 0,
+    hasStarted: false,
+  });
 
-    let roomCode;
-    let isUnique = false;
-
-    while (!isUnique) {
-        roomCode = generateRoomCode();
-        const existingSession = await Session.findOne({ roomCode, isActive: true });
-        if (!existingSession) {
-            isUnique = true;
-        }
-    }
-
-    const session = await Session.create({
-        quizId,
-        roomCode,
-        isActive: true,
-        currentQuestionIndex: 0,
-        hasStarted: false
-    });
-
-    res.status(201).json(session);
+  res.status(201).json(session);
 });
-
 
 const getSessionByRoomCode = asyncHandler(async (req, res) => {
-    const session = await Session.findOne({
-        roomCode: req.params.roomCode.toUpperCase(),
-        isActive: true
-    }).populate('quizId');
+  const session = await Session.findOne({
+    roomCode: req.params.roomCode.toUpperCase(),
+    isActive: true,
+  }).populate("quizId");
 
-    if (!session) {
-        res.status(404);
-        throw new Error('Session not found or has ended');
-    }
+  if (!session) {
+    res.status(404);
+    throw new Error("Session not found or has ended");
+  }
 
-    res.json(session);
+  res.json(session);
 });
-
 
 const endSession = asyncHandler(async (req, res) => {
-    const session = await Session.findById(req.params.id);
+  const session = await Session.findById(req.params.id);
 
-    if (!session) {
-        res.status(404);
-        throw new Error('Session not found');
-    }
+  if (!session) {
+    res.status(404);
+    throw new Error("Session not found");
+  }
 
-    // Fetch leaderboard
-    const finalLeaderboard = await Student.find({ sessionId: session._id })
-        .sort({ score: -1 })
-        .select('name rollNumber score totalQuestions');
+  // Fetch leaderboard
+  const finalLeaderboard = await Student.find({ sessionId: session._id })
+    .sort({ score: -1 })
+    .select("name rollNumber score totalQuestions");
 
-    session.isActive = false;
-    session.endedAt = new Date();
-    session.finalLeaderboard = finalLeaderboard;
-    await session.save();
+  session.isActive = false;
+  session.endedAt = new Date();
+  session.finalLeaderboard = finalLeaderboard;
+  await session.save();
 
-    res.json({ message: 'Session ended successfully', session });
+  res.json({ message: "Session ended successfully", session });
 });
 
-
 const updateCurrentQuestion = asyncHandler(async (req, res) => {
-    const { questionIndex } = req.body;
-    const session = await Session.findById(req.params.id).populate('quizId');
+  const { questionIndex } = req.body;
+  const session = await Session.findById(req.params.id).populate("quizId");
 
-    if (!session) {
-        res.status(404);
-        throw new Error('Session not found');
-    }
+  if (!session) {
+    res.status(404);
+    throw new Error("Session not found");
+  }
 
-    if (questionIndex < 0 || questionIndex >= session.quizId.questions.length) {
-        res.status(400);
-        throw new Error('Invalid question index');
-    }
+  if (questionIndex < 0 || questionIndex >= session.quizId.questions.length) {
+    res.status(400);
+    throw new Error("Invalid question index");
+  }
 
-    session.currentQuestionIndex = questionIndex;
-    session.hasStarted = true;
-    await session.save();
+  session.currentQuestionIndex = questionIndex;
+  session.hasStarted = true;
+  await session.save();
 
-    res.json(session);
+  res.json(session);
 });
 
 module.exports = {
-    createSession,
-    getSessionByRoomCode,
-    getActiveSessions,
-    endSession,
-    updateCurrentQuestion
+  createSession,
+  getSessionByRoomCode,
+  getActiveSessions,
+  endSession,
+  updateCurrentQuestion,
 };
